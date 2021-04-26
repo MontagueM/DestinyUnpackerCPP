@@ -1,0 +1,9 @@
+#pragma once
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <iostream>
+
+std::string uint16ToHexStr(uint16_t num);
+std::string uint32ToHexStr(uint32_t num);
+uint32_t swapUInt32Endianness(uint32_t x);
