@@ -20,6 +20,11 @@ std::string uint32ToHexStr(uint32_t num)
 	return hexStr;
 }
 
+uint32_t hexStrToUint32(std::string hash)
+{
+	return swapUInt32Endianness(std::stoul(hash, nullptr, 16));
+}
+
 uint32_t swapUInt32Endianness(uint32_t x)
 {
 	x = (x >> 24) |

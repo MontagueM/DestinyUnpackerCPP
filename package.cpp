@@ -17,15 +17,65 @@ unsigned char nonce[12] =
 };
 
 
-Package::Package(std::string packagePath)
+Package::Package(std::string packagesPath, std::string packageID)
 {
-	Package::packagePath = packagePath;
+	packagePath = getLatestPatchIDPath(packagesPath, packageID);
+}
+
+std::string Package::getLatestPatchIDPath(std::string packagesPath, std::string packageID)
+{
+	std::string fullPath = "";
+	std::string packageName = "";
+	uint16_t patchID;
+	int largestPatchID = -1;
+	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(packagesPath))
+	{
+		fullPath = entry.path().u8string();
+		if (fullPath.find(packageID) != std::string::npos)
+		{
+			patchID = std::stoi(fullPath.substr(fullPath.size() - 5, 1));
+			if (patchID > largestPatchID) largestPatchID = patchID;
+
+			packageName = fullPath.substr(0, fullPath.size() - 6);
+			packageName = packageName.substr(packageName.find_last_of('/'));
+		}
+	}
+	// Some strings are not covered, such as the bootstrap set so we need to do pkg checks
+	if (largestPatchID == -1)
+	{
+		FILE* patchPkg;
+		uint16_t pkgID;
+		for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(packagesPath))
+		{
+			fullPath = entry.path().u8string();
+
+			auto status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
+			if (!patchPkg) 
+				exit(1);
+			fseek(patchPkg, 0x10, SEEK_SET);
+			fread((char*)&pkgID, 1, 2, patchPkg);
+
+			if (packageID == uint16ToHexStr(pkgID))
+			{
+				fseek(patchPkg, 0x30, SEEK_SET);
+				fread((char*)&patchID, 1, 2, patchPkg);
+				if (patchID > largestPatchID) largestPatchID = patchID;
+
+				packageName = fullPath.substr(0, fullPath.size() - 6);
+				packageName = packageName.substr(packageName.find_last_of('/'));
+			}
+			fclose(patchPkg);
+		}
+	}
+
+	return packagesPath + "/" + packageName + "_" + std::to_string(largestPatchID) + ".pkg";
 }
 
 void Package::readHeader()
 {
 	// Package data
 	fopen_s(&pkgFile, packagePath.c_str(), "rb");
+	if (!pkgFile) exit(1);
 	fseek(pkgFile, 0x10, SEEK_SET);
 	fread((char*)&header.pkgID, 1, 2, pkgFile);
 
@@ -259,4 +309,30 @@ bool Package::Unpack()
 	fclose(pkgFile);
 	extractFiles();
 	return 0;
+}
+
+
+// Most efficient route to getting a single entry's reference
+std::string Package::getEntryReference(std::string hash)
+{
+	// Entry index
+	uint32_t id = hexStrToUint32(hash) % 8192;
+
+	// Entry offset
+	uint32_t entryTableOffset;
+	fopen_s(&pkgFile, packagePath.c_str(), "rb");
+	if (!pkgFile)
+	{
+		printf("Failed to initialise pkg file");
+		exit(1);
+	}
+	fseek(pkgFile, 0x44, SEEK_SET);
+	fread((char*)&entryTableOffset, 1, 4, pkgFile);
+
+	// Getting reference
+	uint32_t entryA;
+	fseek(pkgFile, entryTableOffset + id * 16, SEEK_SET);
+	fread((char*)&entryA, 1, 4, pkgFile);
+	std::string reference = uint32ToHexStr(swapUInt32Endianness(entryA));
+	return reference;
 }

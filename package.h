@@ -74,11 +74,12 @@ private:
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
 	bool initOodle();
 public:
-	std::string packageName;
 	std::string packagePath;
 
 	// Constructor
-	Package(std::string packagePath);
+	Package(std::string packagesPath, std::string packageName);
 
 	bool Unpack();
+	std::string getEntryReference(std::string hash);
+	std::string getLatestPatchIDPath(std::string packagesPath, std::string packageName);
 };

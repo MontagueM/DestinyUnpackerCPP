@@ -134,7 +134,7 @@ std::vector<std::string> getLatestPatchIDs(std::string packagesPath)
 int main()
 {
 	packagesPath = "I:/SteamLibrary/steamapps/common/Destiny 2/packages/";
-	
+
 	//std::vector<std::string> latestPackages;
 	//bool bGotLatestPatchIDs = getLatestPatchIDs_Str(latestPackages, packagesPath);
 	//bool bGotLatestPatchIDs = getLatestPatchIDs_Bin(latestPackages, packagesPath);
@@ -143,7 +143,7 @@ int main()
 	for (std::string path : latestPackages)
 	{
 		std::cout << "Unpacking " << path << "\n";
-		Package Pkg(path);
+		Package Pkg(packagesPath, "black_garden_0174");
 		Pkg.Unpack();
 	}
 
