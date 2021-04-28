@@ -143,7 +143,7 @@ int main()
 	for (std::string path : latestPackages)
 	{
 		std::cout << "Unpacking " << path << "\n";
-		Package Pkg(packagesPath, "black_garden_0174");
+		Package Pkg("black_garden_0174");
 		Pkg.Unpack();
 	}
 

@@ -54,7 +54,11 @@ typedef int64_t(*OodleLZ64_DecompressDef)(unsigned char* Buffer, int64_t BufferS
 class Package
 {
 private:
-	const int BLOCK_SIZE = 0x40000;
+	unsigned char nonce[12] =
+	{
+		0x84, 0xEA, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
+	};
+
 	const std::string CUSTOM_DIR = "I:/test_out/pkg/";
 
 	FILE* pkgFile;
@@ -65,7 +69,7 @@ private:
 	int64_t OodleLZ_Decompress;
 	HMODULE hOodleDll;
 
-	void readHeader();
+	bool readHeader();
 	void modifyNonce();
 	void getEntryTable();
 	void getBlockTable();
@@ -74,14 +78,15 @@ private:
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
 	bool initOodle();
 public:
+	std::string packagesPath = "I:/SteamLibrary/steamapps/common/Destiny 2/packages/";
 	std::string packagePath;
 	std::string packageName;
 
 	// Constructor
-	Package(std::string packagesPath, std::string packageName);
+	Package(std::string packageName);
 
 	bool Unpack();
 	std::string getEntryReference(std::string hash);
-	std::string getLatestPatchIDPath(std::string packagesPath, std::string packageName);
-	unsigned char* getEntryData(std::string hash);
+	std::string getLatestPatchIDPath(std::string packageName);
+	unsigned char* getEntryData(std::string hash, int& fileSize);
 };

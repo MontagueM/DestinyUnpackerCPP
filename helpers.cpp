@@ -13,7 +13,7 @@ std::string uint16ToHexStr(uint16_t num)
 std::string uint32ToHexStr(uint32_t num)
 {
 	std::stringstream stream;
-	stream << std::hex << num;
+	stream << std::hex << swapUInt32Endianness(num);
 	std::string hexStr = stream.str();
 	if (hexStr.size() % 8 != 0)
 		hexStr = std::string(8 - (hexStr.size() % 8), '0').append(hexStr);
