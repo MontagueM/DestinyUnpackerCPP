@@ -25,7 +25,6 @@ Package::Package(std::string packagesPath, std::string packageID)
 std::string Package::getLatestPatchIDPath(std::string packagesPath, std::string packageID)
 {
 	std::string fullPath = "";
-	std::string packageName = "";
 	uint16_t patchID;
 	int largestPatchID = -1;
 	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(packagesPath))
@@ -334,5 +333,108 @@ std::string Package::getEntryReference(std::string hash)
 	fseek(pkgFile, entryTableOffset + id * 16, SEEK_SET);
 	fread((char*)&entryA, 1, 4, pkgFile);
 	std::string reference = uint32ToHexStr(swapUInt32Endianness(entryA));
+	fclose(pkgFile);
 	return reference;
+}
+
+// This gets the minimum required data to pull out a single file from the game
+unsigned char* Package::getEntryData(std::string hash)
+{
+	// Entry index
+	uint32_t id = hexStrToUint32(hash) % 8192;
+
+	// Header data
+	readHeader();
+
+	Entry entry;
+
+	// EntryC
+	uint32_t entryC;
+	fseek(pkgFile, header.entryTableOffset + id * 16 + 8, SEEK_SET);
+	fread((char*)&entryC, 1, 4, pkgFile);
+	entry.startingBlock = entryC & 0x3FFF;
+	entry.startingBlockOffset = ((entryC >> 14) & 0x3FFF) << 4;
+
+	// EntryD
+	uint32_t entryD;
+	fread((char*)&entryD, 1, 4, pkgFile);
+	entry.fileSize = (entryD & 0x3FFFFFF) << 4 | (entryC >> 28) & 0xF;
+
+	
+	int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
+
+	// Getting required block data
+	for (uint32_t i = header.blockTableOffset + entry.startingBlock * 48; i < header.blockTableOffset + entry.startingBlock * 48 + blockCount * 48; i += 48)
+	{
+		Block block = { 0, 0, 0, 0, 0 };
+		fseek(pkgFile, i, SEEK_SET);
+		fread((char*)&block.offset, 1, 4, pkgFile);
+		fread((char*)&block.size, 1, 4, pkgFile);
+		fread((char*)&block.patchID, 1, 2, pkgFile);
+		fread((char*)&block.bitFlag, 1, 2, pkgFile);
+		fseek(pkgFile, i + 0x20, SEEK_SET);
+		fread((char*)&block.gcmTag, 16, 1, pkgFile);
+		blocks.push_back(block);
+	}
+
+	// Getting data to return
+	if (!initOodle())
+	{
+		printf("Failed to initialise oodle");
+		exit(1);
+	}
+	modifyNonce();
+	unsigned char* fileBuffer = new unsigned char[entry.fileSize];
+	int currentBufferOffset = 0;
+	int currentBlockID = 0;
+	for (const Block& currentBlock : blocks) // & here is good as it captures by const reference, cheaper than by value
+	{
+		packagePath[packagePath.size()-5] = currentBlock.patchID + 48;
+		FILE* pFile;
+		fopen_s(&pFile, packagePath.c_str(), "rb");
+		fseek(pFile, currentBlock.offset, SEEK_SET);
+		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
+		size_t result;
+		result = fread(blockBuffer, 1, currentBlock.size, pFile);
+		if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
+
+		unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
+		unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
+
+		if (currentBlock.bitFlag & 0x2)
+			decryptBlock(currentBlock, blockBuffer, decryptBuffer);
+		else
+			decryptBuffer = blockBuffer;
+
+		if (currentBlock.bitFlag & 0x1)
+			decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+		else
+			decompBuffer = decryptBuffer;
+
+		if (currentBlockID == 0)
+		{
+			size_t cpySize;
+			if (currentBlockID == blockCount - 1)
+				cpySize = entry.fileSize;
+			else
+				cpySize = BLOCK_SIZE - entry.startingBlockOffset;
+			memcpy(fileBuffer, decompBuffer + entry.startingBlockOffset, cpySize);
+			currentBufferOffset += cpySize;
+		}
+		else if (currentBlockID == blockCount - 1)
+		{
+			memcpy(fileBuffer + currentBufferOffset, decompBuffer, entry.fileSize - currentBufferOffset);
+		}
+		else
+		{
+			memcpy(fileBuffer + currentBufferOffset, decompBuffer, BLOCK_SIZE);
+			currentBufferOffset += BLOCK_SIZE;
+		}
+
+		fclose(pFile);
+		currentBlockID++;
+		delete[] decompBuffer;
+	}
+
+	return fileBuffer;
 }

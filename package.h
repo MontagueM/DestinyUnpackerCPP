@@ -75,6 +75,7 @@ private:
 	bool initOodle();
 public:
 	std::string packagePath;
+	std::string packageName;
 
 	// Constructor
 	Package(std::string packagesPath, std::string packageName);
@@ -82,4 +83,5 @@ public:
 	bool Unpack();
 	std::string getEntryReference(std::string hash);
 	std::string getLatestPatchIDPath(std::string packagesPath, std::string packageName);
+	unsigned char* getEntryData(std::string hash);
 };
