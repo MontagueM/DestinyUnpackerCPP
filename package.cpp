@@ -291,12 +291,13 @@ void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigne
 
 bool Package::initOodle()
 {
-	hOodleDll = LoadLibraryA("oo2core_8_win64.dll");
+	hOodleDll = LoadLibrary(L"oo2core_8_win64.dll");
 	if (hOodleDll == nullptr) {
 		return false;
 	}
 	OodleLZ_Decompress = (int64_t)GetProcAddress(hOodleDll, "OodleLZ_Decompress");
 	if (!OodleLZ_Decompress) printf("Failed to find Oodle compress/decompress functions in DLL!");
+	return true;
 }
 
 bool Package::Unpack()
