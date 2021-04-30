@@ -83,7 +83,7 @@ public:
 	std::string packageName;
 
 	// Constructor
-	Package(std::string packageName);
+	Package(std::string packageID, std::string pkgsPath);
 
 	bool Unpack();
 	std::string getEntryReference(std::string hash);

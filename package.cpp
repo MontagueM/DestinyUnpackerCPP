@@ -13,8 +13,9 @@ const static unsigned char AES_KEY_1[16] =
 
 const int BLOCK_SIZE = 0x40000;
 
-Package::Package(std::string packageID)
+Package::Package(std::string packageID, std::string pkgsPath)
 {
+	packagesPath = pkgsPath;
 	packagePath = getLatestPatchIDPath(packageID);
 }
 
@@ -47,7 +48,7 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 			auto status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
 			if (status != 0)
 			{
-				printf("Cannot open patch pkg file");
+				printf("\nCannot open patch pkg file, exiting...");
 				exit(1);
 			}
 			fseek(patchPkg, 0x10, SEEK_SET);
@@ -75,7 +76,7 @@ bool Package::readHeader()
 	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
 	if (status != 0)
 	{
-		printf("Cannot open patch pkg header");
+		printf("\nCannot open patch pkg header");
 		return false;
 	}
 	fseek(pkgFile, 0x10, SEEK_SET);
@@ -273,7 +274,7 @@ void Package::decryptBlock(Block block, unsigned char* blockBuffer, unsigned cha
 	status = BCryptDecrypt(hAesKey, (PUCHAR)blockBuffer, (ULONG)block.size, &cipherModeInfo, nullptr, 0,
 		(PUCHAR)decryptBuffer, (ULONG)block.size, &decryptionResult, 0);
 	if (status < 0)// && status != -1073700862)
-		printf("bcrypt decryption failed!");
+		printf("\nbcrypt decryption failed!");
 	BCryptDestroyKey(hAesKey);
 	BCryptCloseAlgorithmProvider(hAesAlg, 0);
 
@@ -290,7 +291,7 @@ void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigne
 
 bool Package::initOodle()
 {
-	hOodleDll = LoadLibrary(L"I:/oo2core_8_win64.dll");
+	hOodleDll = LoadLibraryA("oo2core_8_win64.dll");
 	if (hOodleDll == nullptr) {
 		return false;
 	}
@@ -303,7 +304,7 @@ bool Package::Unpack()
 	readHeader();
 	if (!initOodle())
 	{
-		printf("Failed to initialise oodle");
+		printf("\nFailed to initialise oodle");
 		return 1;
 	}
 	modifyNonce();
@@ -326,7 +327,7 @@ std::string Package::getEntryReference(std::string hash)
 	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
 	if (status != 0)
 	{
-		printf("Failed to initialise pkg file");
+		printf("\nFailed to initialise pkg file, exiting...");
 		exit(1);
 	}
 	fseek(pkgFile, 0x44, SEEK_SET);
@@ -387,7 +388,7 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 	// Getting data to return
 	if (!initOodle())
 	{
-		printf("Failed to initialise oodle");
+		printf("\nFailed to initialise oodle, exiting...");
 		exit(1);
 	}
 	modifyNonce();
