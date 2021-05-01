@@ -25,6 +25,11 @@ uint32_t hexStrToUint32(std::string hash)
 	return swapUInt32Endianness(std::stoul(hash, nullptr, 16));
 }
 
+uint64_t hexStrToUint64(std::string hash)
+{
+	return swapUInt64Endianness(std::stoull(hash, nullptr, 16));
+}
+
 uint32_t swapUInt32Endianness(uint32_t x)
 {
 	x = (x >> 24) |
@@ -32,4 +37,17 @@ uint32_t swapUInt32Endianness(uint32_t x)
 		((x >> 8) & 0x0000FF00) |
 		(x << 24);
 	return x;
+}
+
+uint64_t swapUInt64Endianness(uint64_t k)
+{
+	return ((k << 56) |
+		((k & 0x000000000000FF00) << 40) |
+		((k & 0x0000000000FF0000) << 24) |
+		((k & 0x00000000FF000000) << 8) |
+		((k & 0x000000FF00000000) >> 8) |
+		((k & 0x0000FF0000000000) >> 24) |
+		((k & 0x00FF000000000000) >> 40) |
+		(k >> 56)
+		);
 }

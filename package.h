@@ -10,8 +10,13 @@
 #include <string>
 #include <filesystem>
 #include <bcrypt.h>
+#include <set>
 #include "helpers.h"
+#include <unordered_map>
 
+std::unordered_map<uint64_t, uint32_t> loadH64Table();
+std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath);
+bool saveH64Table(std::unordered_map<uint64_t, uint32_t> hash64Table);
 
 struct PkgHeader
 {

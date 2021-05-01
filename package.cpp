@@ -76,7 +76,6 @@ bool Package::readHeader()
 	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
 	if (status != 0)
 	{
-		printf("\nCannot open patch pkg header");
 		return false;
 	}
 	fseek(pkgFile, 0x10, SEEK_SET);
@@ -447,3 +446,217 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 
 	return fileBuffer;
 }
+
+
+std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath)
+{
+	std::set<std::string> pkgIDs;
+	std::unordered_map<uint64_t, uint32_t> hash64Table;
+
+	std::string path;
+
+	std::string fullPath;
+	std::string reducedPath;
+	uint16_t pkgIDBytes;
+	std::string pkgID;
+	FILE* pkgFile;
+	// Getting all packages
+	for (const auto& entry : std::filesystem::directory_iterator(packagesPath))
+	{
+		path = entry.path().u8string();
+		fopen_s(&pkgFile, path.c_str(), "rb");
+		fseek(pkgFile, 0x10, SEEK_SET);
+		fread((char*)&pkgIDBytes, 1, 2, pkgFile);
+		pkgID = uint16ToHexStr(pkgIDBytes);
+		pkgIDs.insert(pkgID);
+		fclose(pkgFile);
+	}
+	for (auto& pkgID : pkgIDs)
+	{
+		Package pkg = Package(pkgID, packagesPath);
+		fopen_s(&pkgFile, pkg.packagePath.c_str(), "rb");
+
+		// Hash64 Table
+		uint32_t hash64TableCount;
+		uint32_t hash64TableOffset;
+		fseek(pkgFile, 0xB8, SEEK_SET);
+		fread((char*)&hash64TableCount, 1, 4, pkgFile);
+		if (!hash64TableCount) continue;
+		fread((char*)&hash64TableOffset, 1, 4, pkgFile);
+		hash64TableOffset += 64;
+
+		for (int i = hash64TableOffset; i < hash64TableOffset + hash64TableCount * 0x10; i += 0x10)
+		{
+			uint64_t h64Val;
+			fseek(pkgFile, i, SEEK_SET);
+			fread((char*)&h64Val, 1, 8, pkgFile);
+			uint32_t hVal;
+			fread((char*)&hVal, 1, 4, pkgFile);
+			hash64Table[h64Val] = hVal;
+		}
+		fclose(pkgFile);
+	}
+	return hash64Table;
+}
+
+// https://stackoverflow.com/questions/48409391/faster-way-to-read-write-a-stdunordered-map-from-to-a-file
+bool saveH64Table(std::unordered_map<uint64_t, uint32_t> hash64Table)
+{
+	FILE* file;
+	fopen_s(&file, "h64", "wb");
+	if (file != NULL) return false;
+	for (auto& element : hash64Table)
+	{
+		fwrite(&element.first, 8, 1, file);
+		fwrite(&element.second, 4, 1, file);
+	}
+	fclose(file);
+	return true;
+}
+
+std::unordered_map<uint64_t, uint32_t> loadH64Table()
+{
+	std::unordered_map<uint64_t, uint32_t> hash64Table;
+	FILE* file;
+	fopen_s(&file, "h64", "rb");
+	uint64_t h64Val;
+	uint32_t hVal;
+	fread(&h64Val, 8, 1, file);
+	size_t read = fread(&hVal, 4, 1, file);
+	hash64Table[h64Val] = hVal;
+	while (read)
+	{
+		fread(&h64Val, 8, 1, file);
+		read = fread(&hVal, 4, 1, file);
+		hash64Table[h64Val] = hVal;
+	}
+	fclose(file);
+	return hash64Table;
+}
+
+//std::string getH64(std::string hash64, std::string packagesPath)
+//{
+//
+//	/*
+//	- Iterate over every package's top patch ID
+//	- If no hash64 count, skip
+//	- If count, iterate over table
+//	- If no hash64 match, continue
+//	- Break of match and return hash
+//	*/
+//	uint64_t findH64Val = hexStrToUint64(hash64);
+//
+//	std::set<std::string> pkgIDs;
+//	std::string path;
+//
+//	std::string fullPath;
+//	std::string reducedPath;
+//	uint16_t pkgIDBytes;
+//	std::string pkgID;
+//	FILE* pkgFile;
+//	// Getting all packages
+//	for (const auto& entry : std::filesystem::directory_iterator(packagesPath))
+//	{
+//		path = entry.path().u8string();
+//		fopen_s(&pkgFile, path.c_str(), "rb");
+//		fseek(pkgFile, 0x10, SEEK_SET);
+//		fread((char*)&pkgIDBytes, 1, 2, pkgFile);
+//		pkgID = uint16ToHexStr(pkgIDBytes);
+//		pkgIDs.insert(pkgID);
+//		fclose(pkgFile);
+//	}
+//	for (auto& pkgID : pkgIDs)
+//	{
+//		Package pkg = Package(pkgID, packagesPath);
+//		fopen_s(&pkgFile, pkg.packagePath.c_str(), "rb");
+//
+//		// Hash64 Table
+//		uint32_t hash64TableCount;
+//		uint32_t hash64TableOffset;
+//		fseek(pkgFile, 0xB8, SEEK_SET);
+//		fread((char*)&hash64TableCount, 1, 4, pkgFile);
+//		if (!hash64TableCount) continue;
+//		fread((char*)&hash64TableOffset, 1, 4, pkgFile);
+//		hash64TableOffset += 64;
+//
+//		for (int i = hash64TableOffset; i < hash64TableOffset + hash64TableCount * 0x10; i += 0x10)
+//		{
+//			uint64_t h64Val;
+//			fseek(pkgFile, i, SEEK_SET);
+//			fread((char*)&h64Val, 1, 8, pkgFile);
+//			if (h64Val == findH64Val)
+//			{
+//				uint32_t val;
+//				fread((char*)&val, 1, 4, pkgFile);
+//				return uint32ToHexStr(val);
+//			}
+//		}
+//		fclose(pkgFile);
+//	}
+//	return "";
+//}
+
+//std::string getH64(std::string hash64, std::string packagesPath)
+//{
+//
+//	/*
+//	- Iterate over every package's top patch ID
+//	- If no hash64 count, skip
+//	- If count, iterate over table
+//	- If no hash64 match, continue
+//	- Break of match and return hash
+//	*/
+//	uint64_t findH64Val = hexStrToUint64(hash64);
+//
+//	std::string lastPkgID = "";
+//	std::string path;
+//
+//	std::string fullPath;
+//	std::string reducedPath;
+//	uint16_t pkgIDBytes;
+//	std::string pkgID;
+//	FILE* pkgFile;
+//	// Getting all packages
+//	for (const auto& entry : std::filesystem::directory_iterator(packagesPath))
+//	{
+//		path = entry.path().u8string();
+//		fopen_s(&pkgFile, path.c_str(), "rb");
+//		fseek(pkgFile, 0x10, SEEK_SET);
+//		fread((char*)&pkgIDBytes, 1, 2, pkgFile);
+//		pkgID = uint16ToHexStr(pkgIDBytes);
+//		if (pkgID != lastPkgID)
+//		{
+//			lastPkgID = pkgID;
+//			Package pkg = Package(pkgID, packagesPath);
+//			fopen_s(&pkgFile, pkg.packagePath.c_str(), "rb");
+//
+//			// Hash64 Table
+//			uint32_t hash64TableCount;
+//			uint32_t hash64TableOffset;
+//			fseek(pkgFile, 0xB8, SEEK_SET);
+//			fread((char*)&hash64TableCount, 1, 4, pkgFile);
+//			if (!hash64TableCount)
+//			{
+//				fclose(pkgFile);
+//				continue;
+//			}
+//			fread((char*)&hash64TableOffset, 1, 4, pkgFile);
+//			hash64TableOffset += 64;
+//
+//			for (int i = hash64TableOffset; i < hash64TableOffset + hash64TableCount * 0x10; i += 0x10)
+//			{
+//				uint64_t h64Val;
+//				fseek(pkgFile, i, SEEK_SET);
+//				fread((char*)&h64Val, 1, 8, pkgFile);
+//				if (h64Val == findH64Val)
+//				{
+//					uint32_t val;
+//					fread((char*)&val, 1, 4, pkgFile);
+//					return uint32ToHexStr(val);
+//				}
+//			}
+//		}
+//		fclose(pkgFile);
+//	}
+//	return "";
+//}
