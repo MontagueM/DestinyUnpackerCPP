@@ -94,4 +94,5 @@ public:
 	std::string getEntryReference(std::string hash);
 	std::string getLatestPatchIDPath(std::string packageName);
 	unsigned char* getEntryData(std::string hash, int& fileSize);
+	std::vector<std::string> getAllFilesGivenRef(std::string reference);
 };
