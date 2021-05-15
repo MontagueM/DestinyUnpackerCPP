@@ -3,7 +3,7 @@ Put oodle dll in same directory. The oodle dll is from Destiny 2 directory.
 
 Valid for all Destiny 2: Beyond Light packages from version 3.0.0.0 onward.
 
-This is a C++ version of my Python code that uses OpenSSL for the AES-GCM-128 decryption.
+This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
 ## Licensing
 
