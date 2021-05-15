@@ -30,6 +30,12 @@ uint64_t hexStrToUint64(std::string hash)
 	return swapUInt64Endianness(std::stoull(hash, nullptr, 16));
 }
 
+uint16_t swapUInt16Endianness(uint16_t x)
+{
+	x = (x << 8) + (x >> 8);
+	return x;
+}
+
 uint32_t swapUInt32Endianness(uint32_t x)
 {
 	x = (x >> 24) |

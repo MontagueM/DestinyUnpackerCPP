@@ -67,32 +67,35 @@ private:
 	const std::string CUSTOM_DIR = "I:/test_out/pkg/";
 
 	FILE* pkgFile;
-	PkgHeader header;
-	std::vector<Entry> entries;
 	std::vector<Block> blocks;
 
 	int64_t OodleLZ_Decompress;
 	HMODULE hOodleDll;
 
-	bool readHeader();
-	void modifyNonce();
-	void getEntryTable();
+
 	void getBlockTable();
 	void extractFiles();
 	void decryptBlock(Block block, unsigned char* blockBuffer, unsigned char* &decryptBuffer);
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
-	bool initOodle();
+
 public:
 	std::string packagesPath = "I:/SteamLibrary/steamapps/common/Destiny 2/packages/";
 	std::string packagePath;
 	std::string packageName;
+	PkgHeader header;
+	std::vector<Entry> entries;
 
 	// Constructor
 	Package(std::string packageID, std::string pkgsPath);
 
+	bool initOodle();
+	void modifyNonce();
+	bool readHeader();
 	bool Unpack();
+	void getEntryTable();
 	std::string getEntryReference(std::string hash);
 	std::string getLatestPatchIDPath(std::string packageName);
 	unsigned char* getEntryData(std::string hash, int& fileSize);
 	std::vector<std::string> getAllFilesGivenRef(std::string reference);
+	unsigned char* getBufferFromEntry(Entry entry);
 };
