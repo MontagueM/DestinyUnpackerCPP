@@ -331,7 +331,8 @@ std::string Package::getEntryReference(std::string hash)
 	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
 	if (status != 0)
 	{
-		printf("\nFailed to initialise pkg file, exiting...");
+		printf("\nFailed to initialise pkg file, exiting...\n");
+		std::cerr << hash << std::endl << packagePath;
 		exit(1);
 	}
 	fseek(pkgFile, 0x44, SEEK_SET);
@@ -346,6 +347,34 @@ std::string Package::getEntryReference(std::string hash)
 	return reference;
 }
 
+uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
+{
+	// Entry index
+	uint32_t id = hexStrToUint32(hash) % 8192;
+
+	// Entry offset
+	uint32_t entryTableOffset;
+	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
+	if (status != 0)
+	{
+		printf("\nFailed to initialise pkg file, exiting...\n");
+		std::cerr << hash << std::endl << packagePath;
+		exit(1);
+	}
+	fseek(pkgFile, 0x44, SEEK_SET);
+	fread((char*)&entryTableOffset, 1, 4, pkgFile);
+
+	// Getting reference
+	// EntryB
+	uint32_t entryB;
+	fseek(pkgFile, entryTableOffset + id * 16 + 4, SEEK_SET);
+	fread((char*)&entryB, 1, 4, pkgFile);
+	uint8_t type = (entryB >> 9) & 0x7F;
+	subType = (entryB >> 6) & 0x7;
+	fclose(pkgFile);
+	return type;
+}
+
 // This gets the minimum required data to pull out a single file from the game
 unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 {
@@ -358,6 +387,8 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 		bool status = readHeader();
 		if (!status) return nullptr;
 	}
+
+	if (id >= header.entryTableSize) return nullptr;
 
 	Entry entry;
 
@@ -431,7 +462,7 @@ std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath
 		fread((char*)&hash64TableCount, 1, 4, pkgFile);
 		if (!hash64TableCount) continue;
 		fread((char*)&hash64TableOffset, 1, 4, pkgFile);
-		hash64TableOffset += 64;
+		hash64TableOffset += 64 + 0x10;
 
 		for (int i = hash64TableOffset; i < hash64TableOffset + hash64TableCount * 0x10; i += 0x10)
 		{

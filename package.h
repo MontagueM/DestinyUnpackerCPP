@@ -94,6 +94,7 @@ public:
 	bool Unpack();
 	void getEntryTable();
 	std::string getEntryReference(std::string hash);
+	uint8_t getEntryTypes(std::string hash, uint8_t& subType);
 	std::string getLatestPatchIDPath(std::string packageName);
 	unsigned char* getEntryData(std::string hash, int& fileSize);
 	std::vector<std::string> getAllFilesGivenRef(std::string reference);
