@@ -185,6 +185,7 @@ void Package::extractFiles()
 		Entry entry = entries[i];
 		int currentBlockID = entry.startingBlock;
 		int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
+		if (entry.fileSize == 0) blockCount = 0; // Stupid check for weird C++ floor behaviour
 		int lastBlockID = currentBlockID + blockCount;
 		unsigned char* fileBuffer = new unsigned char[entry.fileSize];
 		int currentBufferOffset = 0;
@@ -332,8 +333,9 @@ std::string Package::getEntryReference(std::string hash)
 	if (status != 0)
 	{
 		printf("\nFailed to initialise pkg file, exiting...\n");
-		std::cerr << hash << std::endl << packagePath;
-		exit(1);
+		std::cerr << hash << " " << packagePath.c_str() << std::endl << packagePath << std::endl << status << std::endl;
+		return "";
+		//exit(status);
 	}
 	fseek(pkgFile, 0x44, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
@@ -359,7 +361,8 @@ uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
 	{
 		printf("\nFailed to initialise pkg file, exiting...\n");
 		std::cerr << hash << std::endl << packagePath;
-		exit(1);
+		return -1;
+		//exit(1);
 	}
 	fseek(pkgFile, 0x44, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
@@ -576,8 +579,10 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 		int status = fopen_s(&pFile, packagePath.c_str(), "rb");
 		if (status)
 		{
-			std::cerr << "FAILED GETTING PACKAGE FOR BLOCK EXTRACT ERR9532";
-			exit(status);
+			std::cerr << "FAILED GETTING PACKAGE FOR BLOCK EXTRACT ERR9532" << std::endl;
+			std::cerr << status << std::endl;
+			return new unsigned char[0];
+			//exit(status);
 		}
 		fseek(pFile, currentBlock.offset, SEEK_SET);
 		unsigned char* blockBuffer = new unsigned char[currentBlock.size];

@@ -6,7 +6,7 @@ int main()
 {
 	packagesPath = "I:/SteamLibrary/steamapps/common/Destiny 2/packages/";
 
-	Package Pkg("0174", packagesPath);
+	Package Pkg("011f", packagesPath);
 	Pkg.Unpack();
 
 	return 0;
