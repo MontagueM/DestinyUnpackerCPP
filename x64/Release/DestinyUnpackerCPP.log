@@ -1,0 +1,12 @@
+﻿  package.cpp
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(184,18): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(222,35): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(467,37): warning C4018: '<': signed/unsigned mismatch
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(553,17): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(613,34): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+  Generating code
+  2 of 685 functions ( 0.3%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  DestinyUnpackerCPP.vcxproj -> C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\x64\Release\DestinyUnpackerCPP.exe

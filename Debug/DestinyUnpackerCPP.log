@@ -1,0 +1,15 @@
+﻿  main.cpp
+  package.cpp
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyUnpackerCPP\DestinyUnpackerCPP\package.cpp(128,18): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  Generating Code...
+package.obj : error LNK2005: "unsigned char * nonce" (?nonce@@3PAEA) already defined in main.obj
+package.obj : error LNK2019: unresolved external symbol _EVP_DecryptInit referenced in function "private: void __thiscall Package::decryptBlock(struct Block,char *,char &)" (?decryptBlock@Package@@AAEXUBlock@@PADAAD@Z)
+package.obj : error LNK2019: unresolved external symbol _EVP_DecryptUpdate referenced in function "private: void __thiscall Package::decryptBlock(struct Block,char *,char &)" (?decryptBlock@Package@@AAEXUBlock@@PADAAD@Z)
+package.obj : error LNK2019: unresolved external symbol _EVP_DecryptFinal referenced in function "private: void __thiscall Package::decryptBlock(struct Block,char *,char &)" (?decryptBlock@Package@@AAEXUBlock@@PADAAD@Z)
+package.obj : error LNK2019: unresolved external symbol _EVP_CIPHER_CTX_new referenced in function "private: void __thiscall Package::decryptBlock(struct Block,char *,char &)" (?decryptBlock@Package@@AAEXUBlock@@PADAAD@Z)
+package.obj : error LNK2019: unresolved external symbol _EVP_CIPHER_CTX_free referenced in function "private: void __thiscall Package::decryptBlock(struct Block,char *,char &)" (?decryptBlock@Package@@AAEXUBlock@@PADAAD@Z)
+package.obj : error LNK2019: unresolved external symbol _EVP_aes_128_gcm referenced in function "private: void __thiscall Package::decryptBlock(struct Block,char *,char &)" (?decryptBlock@Package@@AAEXUBlock@@PADAAD@Z)
+C:\openssl\lib64\libsslMT.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+C:\openssl\lib64\libcryptoMT.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+C:\openssl\lib64\libsslMD.lib : warning LNK4272: library machine type 'x64' conflicts with target machine type 'x86'
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyUnpackerCPP\Debug\DestinyUnpackerCPP.exe : fatal error LNK1120: 6 unresolved externals

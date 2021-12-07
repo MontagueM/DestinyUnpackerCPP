@@ -44,18 +44,15 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 	// Some strings are not covered, such as the bootstrap set so we need to do pkg checks
 	if (largestPatchID == -1)
 	{
-		FILE* patchPkg;
+		FILE* patchPkg = nullptr;
 		uint16_t pkgID;
 		for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(packagesPath))
 		{
 			fullPath = entry.path().u8string();
 
-			auto status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
-			if (status != 0)
-			{
-				printf("\nCannot open patch pkg file, exiting...");
-				exit(1);
-			}
+
+			errno_t status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
+			if (patchPkg == nullptr || status) exit(67);
 			fseek(patchPkg, 0x10, SEEK_SET);
 			fread((char*)&pkgID, 1, 2, patchPkg);
 
@@ -577,12 +574,14 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 		packagePath[packagePath.size() - 5] = currentBlock.patchID + 48;
 		FILE* pFile;
 		int status = fopen_s(&pFile, packagePath.c_str(), "rb");
-		if (status)
+		while (status)
 		{
-			std::cerr << "FAILED GETTING PACKAGE FOR BLOCK EXTRACT ERR9532" << std::endl;
-			std::cerr << status << std::endl;
-			return new unsigned char[0];
-			//exit(status);
+			status = fopen_s(&pFile, packagePath.c_str(), "rb");
+			//std::cerr << "FAILED GETTING PACKAGE FOR BLOCK EXTRACT ERR9532 {PKG: " << packagePath << "}" << std::endl;
+			//std::cerr << status << std::endl;
+			//fclose(pFile);
+			//return new unsigned char[0];
+			////exit(status);
 		}
 		fseek(pFile, currentBlock.offset, SEEK_SET);
 		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
