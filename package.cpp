@@ -1,16 +1,5 @@
 #include "package.h"
 
-
-const static unsigned char AES_KEY_0[16] =
-{
-	0xD6, 0x2A, 0xB2, 0xC1, 0x0C, 0xC0, 0x1B, 0xC5, 0x35, 0xDB, 0x7B, 0x86, 0x55, 0xC7, 0xDC, 0x3B,
-};
-
-const static unsigned char AES_KEY_1[16] =
-{
-	0x3A, 0x4A, 0x5D, 0x36, 0x73, 0xA6, 0x60, 0x58, 0x7E, 0x63, 0xE6, 0x76, 0xE4, 0x08, 0x92, 0xB5,
-};
-
 const int BLOCK_SIZE = 0x40000;
 
 Package::Package(std::string packageID, std::string pkgsPath)
@@ -52,6 +41,7 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 
 
 			errno_t status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
+			//CreateFileA()
 			if (patchPkg == nullptr || status) exit(67);
 			fseek(patchPkg, 0x10, SEEK_SET);
 			fread((char*)&pkgID, 1, 2, patchPkg);
@@ -80,30 +70,22 @@ bool Package::readHeader()
 	{
 		return false;
 	}
-	fseek(pkgFile, 0x10, SEEK_SET);
+	fseek(pkgFile, 0x04, SEEK_SET);
 	fread((char*)&header.pkgID, 1, 2, pkgFile);
 
-	fseek(pkgFile, 0x30, SEEK_SET);
+	fseek(pkgFile, 0x20, SEEK_SET);
 	fread((char*)&header.patchID, 1, 2, pkgFile);
 
 	// Entry Table
-	fseek(pkgFile, 0x44, SEEK_SET);
+	fseek(pkgFile, 0xB4, SEEK_SET);
+	fread((char*)&header.entryTableSize, 1, 4, pkgFile);
 	fread((char*)&header.entryTableOffset, 1, 4, pkgFile);
 
-	fseek(pkgFile, 0x60, SEEK_SET);
-	fread((char*)&header.entryTableSize, 1, 4, pkgFile);
-
 	// Block Table
-
-	fseek(pkgFile, 0x68, SEEK_SET);
+	fseek(pkgFile, 0xD0, SEEK_SET);
 	fread((char*)&header.blockTableSize, 1, 4, pkgFile);
 	fread((char*)&header.blockTableOffset, 1, 4, pkgFile);
 
-	// Hash64 Table
-	fseek(pkgFile, 0xB8, SEEK_SET);
-	fread((char*)&header.hash64TableSize, 1, 4, pkgFile);
-	fread((char*)&header.hash64TableOffset, 1, 4, pkgFile);
-	header.hash64TableOffset += 64; // relative offset
 	return true;
 }
 
@@ -142,7 +124,7 @@ void Package::getEntryTable()
 
 void Package::getBlockTable()
 {
-	for (uint32_t i = header.blockTableOffset; i < header.blockTableOffset + header.blockTableSize * 48; i += 48)
+	for (uint32_t i = header.blockTableOffset; i < header.blockTableOffset + header.blockTableSize * 0x20; i += 0x20)
 	{
 		Block block = { 0, 0, 0, 0, 0 };
 		fseek(pkgFile, i, SEEK_SET);
@@ -150,17 +132,9 @@ void Package::getBlockTable()
 		fread((char*)&block.size, 1, 4, pkgFile);
 		fread((char*)&block.patchID, 1, 2, pkgFile);
 		fread((char*)&block.bitFlag, 1, 2, pkgFile);
-		fseek(pkgFile, i + 0x20, SEEK_SET);
-		fread((char*)&block.gcmTag, 16, 1, pkgFile);
+		fseek(pkgFile, 0x14, SEEK_CUR); // SHA-1 Hash
 		blocks.push_back(block);
 	}
-}
-
-void Package::modifyNonce()
-{
-	// Nonce
-	nonce[0] ^= (header.pkgID >> 8) & 0xFF;
-	nonce[11] ^= header.pkgID & 0xFF;
 }
 
 void Package::extractFiles()
@@ -198,18 +172,12 @@ void Package::extractFiles()
 			result = fread(blockBuffer, 1, currentBlock.size, pFile);
 			if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
 
-			unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
 			unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
 
-			if (currentBlock.bitFlag & 0x2)
-				decryptBlock(currentBlock, blockBuffer, decryptBuffer);
-			else
-				decryptBuffer = blockBuffer;
-
 			if (currentBlock.bitFlag & 0x1)
-				decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+				decompressBlock(currentBlock, blockBuffer, decompBuffer);
 			else
-				decompBuffer = decryptBuffer;
+				decompBuffer = blockBuffer;
 
 			if (currentBlockID == entry.startingBlock)
 			{
@@ -245,44 +213,6 @@ void Package::extractFiles()
 	}
 }
 
-// Bcrypt decryption implementation largely from Sir Kane's SourcePublic_v2.cpp, very mysterious
-void Package::decryptBlock(Block block, unsigned char* blockBuffer, unsigned char*& decryptBuffer)
-{
-	BCRYPT_ALG_HANDLE hAesAlg;
-	NTSTATUS status;
-	status = BCryptOpenAlgorithmProvider(&hAesAlg, BCRYPT_AES_ALGORITHM, nullptr, 0);
-	status = BCryptSetProperty(hAesAlg, BCRYPT_CHAINING_MODE, (PUCHAR)BCRYPT_CHAIN_MODE_GCM,
-		sizeof(BCRYPT_CHAIN_MODE_GCM), 0);
-
-	alignas(alignof(BCRYPT_KEY_DATA_BLOB_HEADER)) unsigned char keyData[sizeof(BCRYPT_KEY_DATA_BLOB_HEADER) + 16];
-	BCRYPT_KEY_DATA_BLOB_HEADER* pHeader = (BCRYPT_KEY_DATA_BLOB_HEADER*)keyData;
-	pHeader->dwMagic = BCRYPT_KEY_DATA_BLOB_MAGIC;
-	pHeader->dwVersion = BCRYPT_KEY_DATA_BLOB_VERSION1;
-	pHeader->cbKeyData = 16;
-	memcpy(pHeader + 1, block.bitFlag & 0x4 ? AES_KEY_1 : AES_KEY_0, 16);
-	BCRYPT_KEY_HANDLE hAesKey;
-
-	status = BCryptImportKey(hAesAlg, nullptr, BCRYPT_KEY_DATA_BLOB, &hAesKey, nullptr, 0, keyData, sizeof(keyData), 0);
-	ULONG decryptionResult;
-	BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO cipherModeInfo;
-
-	BCRYPT_INIT_AUTH_MODE_INFO(cipherModeInfo);
-
-	cipherModeInfo.pbTag = (PUCHAR)block.gcmTag;
-	cipherModeInfo.cbTag = 0x10;
-	cipherModeInfo.pbNonce = nonce;
-	cipherModeInfo.cbNonce = sizeof(nonce);
-
-	status = BCryptDecrypt(hAesKey, (PUCHAR)blockBuffer, (ULONG)block.size, &cipherModeInfo, nullptr, 0,
-		(PUCHAR)decryptBuffer, (ULONG)block.size, &decryptionResult, 0);
-	if (status < 0)// && status != -1073700862)
-		printf("\nbcrypt decryption failed!");
-	BCryptDestroyKey(hAesKey);
-	BCryptCloseAlgorithmProvider(hAesAlg, 0);
-
-	delete[] blockBuffer;
-}
-
 void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer)
 {
 	int64_t result = ((OodleLZ64_DecompressDef)OodleLZ_Decompress)(decryptBuffer, block.size, decompBuffer, BLOCK_SIZE, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 3);
@@ -293,7 +223,7 @@ void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigne
 
 bool Package::initOodle()
 {
-	hOodleDll = LoadLibrary(L"oo2core_8_win64.dll");
+	hOodleDll = LoadLibrary(L"oo2core_3_win64.dll");
 	if (hOodleDll == nullptr) {
 		return false;
 	}
@@ -310,7 +240,6 @@ bool Package::Unpack()
 		printf("\nFailed to initialise oodle");
 		return 1;
 	}
-	modifyNonce();
 	getEntryTable();
 	getBlockTable();
 	fclose(pkgFile);
@@ -334,8 +263,9 @@ std::string Package::getEntryReference(std::string hash)
 		return "";
 		//exit(status);
 	}
-	fseek(pkgFile, 0x44, SEEK_SET);
+	fseek(pkgFile, 0x110, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
+	entryTableOffset += 96;
 
 	// Getting reference
 	uint32_t entryA;
@@ -346,7 +276,7 @@ std::string Package::getEntryReference(std::string hash)
 	return reference;
 }
 
-uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
+uint8_t Package::getEntryTypes(std::string hash, uint8_t& subType)
 {
 	// Entry index
 	uint32_t id = hexStrToUint32(hash) % 8192;
@@ -361,8 +291,9 @@ uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
 		return -1;
 		//exit(1);
 	}
-	fseek(pkgFile, 0x44, SEEK_SET);
+	fseek(pkgFile, 0x110, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
+	entryTableOffset += 96;
 
 	// Getting reference
 	// EntryB
@@ -411,115 +342,10 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 		printf("\nFailed to initialise oodle, exiting...");
 		exit(1);
 	}
-	modifyNonce();
 
 	unsigned char* buffer = getBufferFromEntry(entry);
 	fclose(pkgFile);
 	return buffer;
-}
-
-std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath)
-{
-	std::set<std::string> pkgIDs;
-	std::unordered_map<uint64_t, uint32_t> hash64Table;
-
-	std::string path;
-	int status;
-	std::string fullPath;
-	std::string reducedPath;
-	uint16_t pkgIDBytes;
-	std::string pkgID;
-	FILE* pkgFile;
-	// Getting all packages
-	for (const auto& entry : std::filesystem::directory_iterator(packagesPath))
-	{
-		path = entry.path().u8string();
-		status = fopen_s(&pkgFile, path.c_str(), "rb");
-		if (status)
-		{
-			std::cerr << "FAILED GETTING PACKAGES FOR H64 ERR1515";
-			exit(status);
-		}
-		fseek(pkgFile, 0x10, SEEK_SET);
-		fread((char*)&pkgIDBytes, 1, 2, pkgFile);
-		pkgID = uint16ToHexStr(pkgIDBytes);
-		pkgIDs.insert(pkgID);
-		fclose(pkgFile);
-	}
-	for (auto& pkgID : pkgIDs)
-	{
-		Package pkg = Package(pkgID, packagesPath);
-		status = fopen_s(&pkgFile, pkg.packagePath.c_str(), "rb");
-		if (status)
-		{
-			std::cerr << "FAILED GETTING PACKAGES FOR H64 ERR5632";
-			exit(status);
-		}
-		// Hash64 Table
-		uint32_t hash64TableCount;
-		uint32_t hash64TableOffset;
-		fseek(pkgFile, 0xB8, SEEK_SET);
-		fread((char*)&hash64TableCount, 1, 4, pkgFile);
-		if (!hash64TableCount) continue;
-		fread((char*)&hash64TableOffset, 1, 4, pkgFile);
-		hash64TableOffset += 64 + 0x10;
-
-		for (int i = hash64TableOffset; i < hash64TableOffset + hash64TableCount * 0x10; i += 0x10)
-		{
-			uint64_t h64Val;
-			fseek(pkgFile, i, SEEK_SET);
-			fread((char*)&h64Val, 1, 8, pkgFile);
-			uint32_t hVal;
-			fread((char*)&hVal, 1, 4, pkgFile);
-			hash64Table[h64Val] = hVal;
-		}
-		fclose(pkgFile);
-	}
-	return hash64Table;
-}
-
-bool saveH64Table(std::unordered_map<uint64_t, uint32_t> hash64Table)
-{
-	FILE* file;
-	int status = fopen_s(&file, "h64", "wb");
-	if (status)
-	{
-		std::cerr << "FAILED WRITING H64 ERR5157";
-		exit(status);
-	}
-	if (file == NULL) return false;
-	for (auto& element : hash64Table)
-	{
-		fwrite(&element.first, 8, 1, file);
-		fwrite(&element.second, 4, 1, file);
-	}
-	fclose(file);
-	return true;
-}
-
-std::unordered_map<uint64_t, uint32_t> loadH64Table()
-{
-	std::unordered_map<uint64_t, uint32_t> hash64Table;
-	FILE* file;
-	int status = fopen_s(&file, "h64", "rb");
-	if (status)
-	{
-		std::cerr << "FAILED READING H64 ERR1231";
-		exit(status);
-	}
-	uint64_t h64Val;
-	uint32_t hVal;
-	fread(&h64Val, 8, 1, file);
-	size_t read = fread(&hVal, 4, 1, file);
-	hash64Table[h64Val] = hVal;
-	while (read)
-	{
-		fread(&h64Val, 8, 1, file);
-		read = fread(&hVal, 4, 1, file);
-		hash64Table[h64Val] = hVal;
-	}
-	fclose(file);
-	return hash64Table;
 }
 
 // For batch extraction
@@ -562,7 +388,6 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 		fread((char*)&block.patchID, 1, 2, pkgFile);
 		fread((char*)&block.bitFlag, 1, 2, pkgFile);
 		fseek(pkgFile, i + 0x20, SEEK_SET);
-		fread((char*)&block.gcmTag, 16, 1, pkgFile);
 		blocks.push_back(block);
 	}
 
@@ -574,33 +399,19 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 		packagePath[packagePath.size() - 5] = currentBlock.patchID + 48;
 		FILE* pFile;
 		int status = fopen_s(&pFile, packagePath.c_str(), "rb");
-		while (status)
-		{
-			status = fopen_s(&pFile, packagePath.c_str(), "rb");
-			//std::cerr << "FAILED GETTING PACKAGE FOR BLOCK EXTRACT ERR9532 {PKG: " << packagePath << "}" << std::endl;
-			//std::cerr << status << std::endl;
-			//fclose(pFile);
-			//return new unsigned char[0];
-			////exit(status);
-		}
+
 		fseek(pFile, currentBlock.offset, SEEK_SET);
 		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
 		size_t result;
 		result = fread(blockBuffer, 1, currentBlock.size, pFile);
 		if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
 
-		unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
 		unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
 
-		if (currentBlock.bitFlag & 0x2)
-			decryptBlock(currentBlock, blockBuffer, decryptBuffer);
-		else
-			decryptBuffer = blockBuffer;
-
 		if (currentBlock.bitFlag & 0x1)
-			decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+			decompressBlock(currentBlock, blockBuffer, decompBuffer);
 		else
-			decompBuffer = decryptBuffer;
+			decompBuffer = blockBuffer;
 
 		if (currentBlockID == 0)
 		{

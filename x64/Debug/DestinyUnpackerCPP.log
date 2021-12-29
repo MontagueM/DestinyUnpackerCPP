@@ -1,9 +1,10 @@
-﻿  package.cpp
-C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(184,18): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(222,35): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(467,37): warning C4018: '<': signed/unsigned mismatch
-C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(553,17): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(613,34): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+﻿  main.cpp
+  package.cpp
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(158,18): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(190,35): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(379,17): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(424,34): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+  Generating Code...
 LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/PROFILE' specification
 helpers.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/OPT:REF' specification
   DestinyUnpackerCPP.vcxproj -> C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\x64\Debug\DestinyUnpackerCPP.exe
