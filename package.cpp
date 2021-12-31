@@ -43,12 +43,12 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 			errno_t status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
 			//CreateFileA()
 			if (patchPkg == nullptr || status) exit(67);
-			fseek(patchPkg, 0x10, SEEK_SET);
+			fseek(patchPkg, 0x04, SEEK_SET);
 			fread((char*)&pkgID, 1, 2, patchPkg);
 
 			if (packageID == uint16ToHexStr(pkgID))
 			{
-				fseek(patchPkg, 0x30, SEEK_SET);
+				fseek(patchPkg, 0x20, SEEK_SET);
 				fread((char*)&patchID, 1, 2, patchPkg);
 				if (patchID > largestPatchID) largestPatchID = patchID;
 				std::replace(fullPath.begin(), fullPath.end(), '\\', '/');
