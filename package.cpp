@@ -43,12 +43,12 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 			errno_t status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
 			//CreateFileA()
 			if (patchPkg == nullptr || status) exit(67);
-			fseek(patchPkg, 0x10, SEEK_SET);
+			fseek(patchPkg, 0x04, SEEK_SET);
 			fread((char*)&pkgID, 1, 2, patchPkg);
 
 			if (packageID == uint16ToHexStr(pkgID))
 			{
-				fseek(patchPkg, 0x30, SEEK_SET);
+				fseek(patchPkg, 0x20, SEEK_SET);
 				fread((char*)&patchID, 1, 2, patchPkg);
 				if (patchID > largestPatchID) largestPatchID = patchID;
 				std::replace(fullPath.begin(), fullPath.end(), '\\', '/');
@@ -263,9 +263,8 @@ std::string Package::getEntryReference(std::string hash)
 		return "";
 		//exit(status);
 	}
-	fseek(pkgFile, 0x110, SEEK_SET);
+	fseek(pkgFile, 0xB8, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
-	entryTableOffset += 96;
 
 	// Getting reference
 	uint32_t entryA;
@@ -291,9 +290,8 @@ uint8_t Package::getEntryTypes(std::string hash, uint8_t& subType)
 		return -1;
 		//exit(1);
 	}
-	fseek(pkgFile, 0x110, SEEK_SET);
+	fseek(pkgFile, 0xB8, SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
-	entryTableOffset += 96;
 
 	// Getting reference
 	// EntryB
@@ -379,7 +377,7 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 	int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
 
 	// Getting required block data
-	for (uint32_t i = header.blockTableOffset + entry.startingBlock * 48; i <= header.blockTableOffset + entry.startingBlock * 48 + blockCount * 48; i += 48)
+	for (uint32_t i = header.blockTableOffset + entry.startingBlock * 0x20; i <= header.blockTableOffset + entry.startingBlock * 0x20 + blockCount * 0x20; i += 0x20)
 	{
 		Block block = { 0, 0, 0, 0, 0 };
 		fseek(pkgFile, i, SEEK_SET);

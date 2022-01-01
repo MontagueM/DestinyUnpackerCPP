@@ -1,10 +1,8 @@
-﻿  main.cpp
-  package.cpp
+﻿  package.cpp
 C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(158,18): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
 C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(190,35): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(379,17): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(424,34): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
-  Generating Code...
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(377,17): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\DestinyUnpackerCPP\package.cpp(422,34): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
 LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/PROFILE' specification
 helpers.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/OPT:REF' specification
   DestinyUnpackerCPP.vcxproj -> C:\Users\monta\OneDrive\Destiny 2 Datamining\CPP\DestinyDataminingCPP\x64\Debug\DestinyUnpackerCPP.exe
