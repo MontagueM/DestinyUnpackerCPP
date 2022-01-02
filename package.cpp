@@ -40,9 +40,9 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 			fullPath = entry.path().u8string();
 
 
-			errno_t status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
+			patchPkg = _fsopen(fullPath.c_str(), "rb", _SH_DENYNO);
 			//CreateFileA()
-			if (patchPkg == nullptr || status) exit(67);
+			if (patchPkg == nullptr) exit(67);
 			fseek(patchPkg, 0x04, SEEK_SET);
 			fread((char*)&pkgID, 1, 2, patchPkg);
 
@@ -65,8 +65,8 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 bool Package::readHeader()
 {
 	// Package data
-	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
-	if (status != 0)
+	pkgFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
+	if (pkgFile == nullptr)
 	{
 		return false;
 	}
@@ -165,7 +165,7 @@ void Package::extractFiles()
 			Block currentBlock = blocks[currentBlockID];
 
 			FILE* pFile;
-			fopen_s(&pFile, pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb");
+			pFile = _fsopen(pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb", _SH_DENYNO);
 			fseek(pFile, currentBlock.offset, SEEK_SET);
 			unsigned char* blockBuffer = new unsigned char[currentBlock.size];
 			size_t result;
@@ -206,7 +206,7 @@ void Package::extractFiles()
 
 		FILE* oFile;
 		std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bin";
-		fopen_s(&oFile, name.c_str(), "wb");
+		oFile = _fsopen(name.c_str(), "rb", _SH_DENYNO);
 		fwrite(fileBuffer, entry.fileSize, 1, oFile);
 		fclose(oFile);
 		delete[] fileBuffer;
@@ -255,11 +255,11 @@ std::string Package::getEntryReference(std::string hash)
 
 	// Entry offset
 	uint32_t entryTableOffset;
-	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
-	if (status != 0)
+	pkgFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
+	if (pkgFile == nullptr)
 	{
 		printf("\nFailed to initialise pkg file, exiting...\n");
-		std::cerr << hash << " " << packagePath.c_str() << std::endl << packagePath << std::endl << status << std::endl;
+		std::cerr << hash << " " << packagePath.c_str() << std::endl << packagePath << std::endl;
 		return "";
 		//exit(status);
 	}
@@ -282,8 +282,8 @@ uint8_t Package::getEntryTypes(std::string hash, uint8_t& subType)
 
 	// Entry offset
 	uint32_t entryTableOffset;
-	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
-	if (status != 0)
+	pkgFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
+	if (pkgFile == nullptr)
 	{
 		printf("\nFailed to initialise pkg file, exiting...\n");
 		std::cerr << hash << std::endl << packagePath;
@@ -396,7 +396,7 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 	{
 		packagePath[packagePath.size() - 5] = currentBlock.patchID + 48;
 		FILE* pFile;
-		int status = fopen_s(&pFile, packagePath.c_str(), "rb");
+		pFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
 
 		fseek(pFile, currentBlock.offset, SEEK_SET);
 		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
