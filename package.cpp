@@ -104,8 +104,10 @@ void Package::getEntryTable()
 		// EntryB
 		uint32_t entryB;
 		fread((char*)&entryB, 1, 4, pkgFile);
-		entry.numType = (entryB >> 9) & 0x7F;
-		entry.numSubType = (entryB >> 6) & 0x7;
+		//entry.numType = (entryB >> 9) & 0x7F;
+		//entry.numSubType = (entryB >> 6) & 0x7;
+		entry.numType = entryB & 0xFFFF;
+		entry.numSubType = entryB >> 24;
 
 		// EntryC
 		uint32_t entryC;
